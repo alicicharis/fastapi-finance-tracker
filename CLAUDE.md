@@ -18,8 +18,11 @@ app/dependencies.py — shared FastAPI dependencies
 
 ## Conventions
 
-(none yet — added here after each feature is captured)
+- Routers are thin: only request/response mapping + `Depends` wiring. All logic lives in `app/services/`.
+- Services take an `AsyncSession` parameter; no global session.
+- Every protected route uses `current_user: User = Depends(get_current_user)`.
+- Pydantic v2 response schemas use `model_config = ConfigDict(from_attributes=True)`.
 
 ## References
 
-(none yet — added here after each feature is captured)
+- [Testing Conventions](.claude/references/testing.md) — async pytest setup, test DB isolation (SAVEPOINT pattern), `auto_error=False` gotcha
