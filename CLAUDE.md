@@ -26,3 +26,4 @@ app/dependencies.py — shared FastAPI dependencies
 ## References
 
 - [Testing Conventions](.claude/references/testing.md) — async pytest setup, test DB isolation (SAVEPOINT pattern), `auto_error=False` gotcha
+- [ORM and Migrations](.claude/references/orm-and-migrations.md) — Postgres ENUM `values_callable` requirement, Alembic autogen drift through pre-existing tables
