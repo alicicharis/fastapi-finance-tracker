@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from httpx import AsyncClient
 from jose import jwt
 
