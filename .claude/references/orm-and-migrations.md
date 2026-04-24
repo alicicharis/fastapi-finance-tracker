@@ -20,9 +20,21 @@ type: reference
   - **Solution**: Accept the bundled alter (the model is the source of truth and `DateTime(timezone=True)` is what we want) OR fix the prior migration and re-baseline. We accepted it.
   - **How to avoid**: Inspect every autogen diff for columns outside the feature you're building. If they're legitimate drift fixes, keep them; if they're noise (e.g. index renaming from a SQLAlchemy version upgrade), delete them before committing.
 
+- **Partial functional unique indexes are not generated correctly by Alembic autogen**
+  - **Symptoms**: Autogen produces plain `op.create_index(...)` without `postgresql_where=` or functional column expressions. The partial constraint is silently missing from the migration.
+  - **Root cause**: Alembic autogen doesn't emit `postgresql_where` or `func.lower()` expressions; it only sees the index exists in the model and emits a simplified version.
+  - **Solution**: Hand-edit the migration. Use `sa.literal_column('lower(name)')` for functional index columns and `postgresql_where=sa.text("user_id IS NOT NULL")` for the partial clause. See `alembic/versions/a4531730c143_categories.py:36–37`.
+  - **How to avoid**: After any `alembic revision --autogenerate`, inspect the generated file for indexes that use `func.lower()` or `postgresql_where` in the model's `__table_args__` — always hand-edit those.
+
+- **Seeding lookup data: use a single sync helper callable by both Alembic and test setup**
+  - **Pattern used**: `app/db/seed.py` exports `DEFAULT_CATEGORIES` (the canonical list) and `seed_default_categories(connection)` (a sync function using raw SQL with `ON CONFLICT DO NOTHING`). The Alembic migration imports `DEFAULT_CATEGORIES` for `op.bulk_insert`; `tests/conftest.py` calls `await conn.run_sync(seed_default_categories)` after `create_all`.
+  - **Why**: Having two definitions of the default list causes drift. One source of truth keeps migration and tests in sync.
+  - **How to apply**: When any feature needs seeded lookup rows, put the canonical list and seed helper in `app/db/seed.py`. Use `op.bulk_insert` in the migration (idempotent via `ON CONFLICT DO NOTHING`), and `conn.run_sync(seed_fn)` in `tests/conftest.py:create_tables`.
+
 ## Project Conventions
 
 - Enum columns use SQLAlchemy `Enum(PyEnum, name="<snake_case_type_name>", values_callable=lambda x: [e.value for e in x])`. The `name=` is the Postgres type name and must be stable across migrations — renaming it requires a `CREATE TYPE … RENAME` migration.
 - Timestamps are always `DateTime(timezone=True)` with `default=func.now()`. Don't use naive `DateTime`.
 - UUID PKs via `mapped_column(primary_key=True, default=uuid.uuid4)`. No sequences.
 - Soft-deletable tables carry `deleted_at: Mapped[datetime | None]` and an index on `(user_id, deleted_at)`; read queries filter `deleted_at IS NULL`. Used by `accounts` — extend the pattern to other user-scoped resources when soft-delete is a requirement.
+- Default/shared categories (user_id IS NULL) are valid FK targets for user-owned records (transactions). Ownership validation must allow `OR user_id IS NULL` when checking category ownership — see `app/services/transaction.py:_validate_category`.
