@@ -6,7 +6,8 @@ description: Generate a commit message for staged changes
 ## Instructions
 
 1. Run `git diff --staged` to see changes
-2. Write a commit message that explains WHY, not just WHAT
+2. If there are no staged changes, stage some with `git add <file>`
+3. Write a commit message that explains WHY, not just WHAT
 
 ## Format
 
