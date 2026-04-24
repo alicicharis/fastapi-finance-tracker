@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 
-from app.routers import accounts, auth
+from app.routers import accounts, auth, categories
 
 app = FastAPI(title="Finance Expense Tracker")
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
+app.include_router(categories.router, prefix="/categories", tags=["categories"])
 
 
 @app.get("/health")

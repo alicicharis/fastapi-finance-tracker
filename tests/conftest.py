@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.db.base import Base
+from app.db.seed import seed_default_categories
 from app.db.session import get_db
 from app.main import app
 
@@ -27,6 +28,7 @@ def create_tables():
         eng = create_async_engine(DATABASE_URL_TEST, echo=False)
         async with eng.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(seed_default_categories)
         await eng.dispose()
 
     async def _teardown():
